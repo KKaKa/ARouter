@@ -1,0 +1,49 @@
+apply plugin: 'com.android.application'
+
+def rootAndroidId = rootProject.ext.android
+def appId = rootProject.ext.appId
+def support = rootProject.ext.dependencies
+
+android {
+    compileSdkVersion rootAndroidId.compileSdkVersion
+    buildToolsVersion rootAndroidId.buildToolsVersion
+    defaultConfig {
+        // app子模块在组件化开发中，默认为application
+        applicationId appId.app
+        minSdkVersion rootAndroidId.minSdkVersion
+        targetSdkVersion rootAndroidId.targetSdkVersion
+        versionCode rootAndroidId.versionCode
+        versionName rootAndroidId.versionName
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("boolean", "isRelease", String.valueOf(isRelease))
+
+        javaCompileOptions{
+            annotationProcessorOptions {
+                arguments = [moduleName : project.getName(),aptPackage : aptPackage]
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    // 循环引入第三方库
+    support.each { k, v -> implementation v }
+
+    api project(':arouter_api')
+    implementation project(':arouter_annotation') // 注解
+    annotationProcessor project(':arouter_compiler') // 注解处理器
+
+    // 如果是集成化模式，做发布版本时。各个模块都不能独立运行了
+    if (isRelease) {
+        implementation project(':order')
+    }
+}
